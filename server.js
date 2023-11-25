@@ -1,11 +1,18 @@
 require('dotenv').config();
+// const admin = require('firebase-admin');
 
 const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { TikTokConnectionWrapper, getGlobalConnectionCount } = require('./connectionWrapper');
 const { clientBlocked } = require('./limiter');
-
+const admin = require('firebase-admin');
+var serviceAccount = require('./serviceAccountKey.json');
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: 'https://tictok-a07c6-default-rtdb.firebaseio.com/'
+  });
+var database = admin.database();
 const app = express();
 const httpServer = createServer(app);
 
@@ -16,9 +23,44 @@ const io = new Server(httpServer, {
     }
 });
 
+function newSession(  uniqueId,roomId) {
+    var chatRef = database.ref('users');
+    var newChatRef = chatRef.push();
+    newChatRef.set({
+        uniqueId:uniqueId,
+        roomId:roomId,
+        timestamp: Date.now()
+    });
+  }
+
+function writeChatMessage(message , uniqueId,roomID = '') {
+    var chatRef = database.ref('chats');
+    var newChatRef = chatRef.push();
+    newChatRef.set({
+        uniqueId:uniqueId,
+        roomID:roomID,
+      message: message,
+      timestamp: Date.now()
+    });
+  }
+
+  function writeGiftMessage(message,uniqueId,roomID ='') {
+    var chatRef = database.ref('gifts');
+    var newChatRef = chatRef.push();
+    newChatRef.set({
+        uniqueId:uniqueId,
+        roomID:roomID,
+
+      message: message,
+      timestamp: Date.now()
+    });
+  }
+
+  
 
 io.on('connection', (socket) => {
     let tiktokConnectionWrapper;
+    let roomID;
 
     console.info('New connection from origin', socket.handshake.headers['origin'] || socket.handshake.headers['referer']);
 
@@ -54,17 +96,36 @@ io.on('connection', (socket) => {
         }
 
         // Redirect wrapper control events once
-        tiktokConnectionWrapper.once('connected', state => socket.emit('tiktokConnected', state));
+        tiktokConnectionWrapper.once('connected', state => {
+            socket.emit('tiktokConnected', state);
+            roomID = state.roomId;
+            newSession(uniqueId,roomID);
+        });
         tiktokConnectionWrapper.once('disconnected', reason => socket.emit('tiktokDisconnected', reason));
-
         // Notify client when stream ends
         tiktokConnectionWrapper.connection.on('streamEnd', () => socket.emit('streamEnd'));
 
         // Redirect message events
         tiktokConnectionWrapper.connection.on('roomUser', msg => socket.emit('roomUser', msg));
         tiktokConnectionWrapper.connection.on('member', msg => socket.emit('member', msg));
-        tiktokConnectionWrapper.connection.on('chat', msg => socket.emit('chat', msg));
-        tiktokConnectionWrapper.connection.on('gift', msg => socket.emit('gift', msg));
+        // tiktokConnectionWrapper.connection.on('chat', msg => socket.emit('chat', msg));
+
+        tiktokConnectionWrapper.connection.on('chat', msg => {
+            // Emit chat message to client
+            socket.emit('chat', msg);   
+            if(roomID) 
+            writeChatMessage(msg,uniqueId,roomID);
+        });
+
+        tiktokConnectionWrapper.connection.on('gift', msg => {
+            // Emit chat message to client
+            socket.emit('chat', msg);      
+            if(roomID)   
+            writeGiftMessage(msg,uniqueId,roomID);
+        });
+
+
+        // tiktokConnectionWrapper.connection.on('gift', msg => socket.emit('gift', msg));
         tiktokConnectionWrapper.connection.on('social', msg => socket.emit('social', msg));
         tiktokConnectionWrapper.connection.on('like', msg => socket.emit('like', msg));
         tiktokConnectionWrapper.connection.on('questionNew', msg => socket.emit('questionNew', msg));
