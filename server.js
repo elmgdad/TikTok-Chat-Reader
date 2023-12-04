@@ -24,36 +24,36 @@ const io = new Server(httpServer, {
 });
 
 function newSession(  uniqueId,roomId) {
-    var chatRef = database.ref('users');
-    var newChatRef = chatRef.push();
-    newChatRef.set({
-        uniqueId:uniqueId,
-        roomId:roomId,
-        timestamp: Date.now()
-    });
+    // var chatRef = database.ref('users');
+    // var newChatRef = chatRef.push();
+    // newChatRef.set({
+    //     uniqueId:uniqueId,
+    //     roomId:roomId,
+    //     timestamp: Date.now()
+    // });
   }
 
 function writeChatMessage(message , uniqueId,roomID = '') {
-    var chatRef = database.ref('chats');
-    var newChatRef = chatRef.push();
-    newChatRef.set({
-        uniqueId:uniqueId,
-        roomID:roomID,
-      message: message,
-      timestamp: Date.now()
-    });
+    // var chatRef = database.ref('chats');
+    // var newChatRef = chatRef.push();
+    // newChatRef.set({
+    //     uniqueId:uniqueId,
+    //     roomID:roomID,
+    //   message: message,
+    //   timestamp: Date.now()
+    // });
   }
 
   function writeGiftMessage(message,uniqueId,roomID ='') {
-    var chatRef = database.ref('gifts');
-    var newChatRef = chatRef.push();
-    newChatRef.set({
-        uniqueId:uniqueId,
-        roomID:roomID,
+    // var chatRef = database.ref('gifts');
+    // var newChatRef = chatRef.push();
+    // newChatRef.set({
+    //     uniqueId:uniqueId,
+    //     roomID:roomID,
 
-      message: message,
-      timestamp: Date.now()
-    });
+    //   message: message,
+    //   timestamp: Date.now()
+    // });
   }
 
   
